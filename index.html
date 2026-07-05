@@ -32,11 +32,20 @@
   </style>
 </head>
 <body>
-  <canvas id="board" width="900" height="500"></canvas>
+  <canvas id="board" width="1000" height="500"></canvas>
   <div id="controls">
+    <select id="boardStyle">
+      <option value="classic">Classic</option>
+      <option value="coffee">Coffee</option>
+      <option value="casino">Casino</option>
+      <option value="monochrome">Monochrome</option>
+    </select>
+    <button id="restartBtn">Restart</button>
     <button id="rollBtn">Roll Dice</button>
     <span id="diceDisplay"></span>
     <span id="status"></span>
+    <br>
+    <span id="pipcount"></span>
   </div>
 
   <script src="backgammon.js"></script>
