@@ -2,8 +2,8 @@
 
 [https://ifnowcode.github.io/gammon](https://ifnowcode.github.io/gammon)
 
-This game works it's just goes left for white and right for black instead of counter clockwise for white and clockwise for black. Still in the process of fixing this I just put it off since it's not a blocking feature just a nice aesthetic.
+Currently you need to click off using the middle bar (bottom for light, top for dark) to deselect if you select and don't move. Still working out how that should behave better.
 
-Currently you need to click off using the middle bar (bottom for white, top for brown) to deselect if you select and don't move. Still working out how that should behave.
+There is an opponent AI (dark player) you just need to roll the dice to initiate it's turn.
 
-There is no opponent AI yet.
+If you don't know how to play there are plenty of resources online, just search for 'How to play Backgammon beginner' sans quotes.

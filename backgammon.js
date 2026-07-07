@@ -8,6 +8,9 @@ const diceDisplay = document.getElementById('diceDisplay');
 const statusEl = document.getElementById('status');
 const pipcountEl = document.getElementById('pipcount');
 
+const tracedebug = false;
+const tracewarn = false;
+
 const WIDTH = canvas.width;
 const HEIGHT = canvas.height;
 
@@ -33,13 +36,18 @@ let diceMoves = [];
 let selected = null; // {fromBar: bool, pointIndex: number|null}
 
 const bear_off = true;
+const ai_on = true;
 let gameOver = false;
 
+// https://colormagic.app/palette/explore/high-contrast
 let boardStyle = {
-  classic: { dark: '#5b3b1a', light:'#2f1b0f', background: "#c9a26b"},
-  coffee: { dark: '#5b3b1a', light:'#2f1b0f', background: "#111"},
-  casino: { dark: 'black', light:'red', background: "green"},
-  monochrome: { dark: 'black', light:'white', background: "gray"}
+  classic: { dark: '#5b3b1a', light:'#2f1b0f', background: '#c9a26b', bar: '#3b2a1a', gutter: '#002D04'},
+  coffee: { dark: '#5b3b1a', light:'#2f1b0f', background: '#111', bar: '#3b2a1a', gutter: '#3b2a1a'},
+  casino: { dark: 'black', light: 'red', background: 'green', bar: 'silver', gutter: '#002D04'},
+  lavender: { dark: '#1D1D4E', light: '#D2D2F4', background: '#9A9AE0', bar: '#5F5FBF', gutter: '#3F3F88'},
+  monochrome: { dark: '#000', light: '#B0B0B0', background: '#3D3D3D', bar: '#7D7D7D', gutter: '#1C1C1C'},
+  elegance: { dark: '#B77BB4', light: '#4A2A6A', background: '#2E1A47', bar: '#794B8B', gutter: '#E2C7E6'},
+  diamond: { dark: '#2D5B67', light: '#B9DAE9', background: '#7CA2B1', bar: '#A5C5D5', gutter: '#4F7F8C'},
 };
   
 let selectedStyle = boardStyle[boardStyleSel.value];
@@ -81,7 +89,7 @@ function testEndGameSetup() {
 function initBoard() {
   //selectedStyle = boardStyle[boardStyleSel.value];
   board = Array.from({ length: POINTS }, () => ({ count: 0, player: 0 }));
-  console.log("Board", board);
+  if (tracedebug) console.log("Board", board);
   bar[PLAYER1] = bar[PLAYER2] = 0;
   borneOff[PLAYER1] = borneOff[PLAYER2] = 0;
   gameOver = false;
@@ -99,24 +107,31 @@ function setPoint(index, player, count) {
 
 function drawBoard() {
   ctx.clearRect(0, 0, WIDTH, HEIGHT);
-
+  
   // Background
   ctx.fillStyle = selectedStyle.background;
   ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
   // Center bar
-  ctx.fillStyle = '#3b2a1a';
+  ctx.fillStyle = selectedStyle.bar;
   ctx.fillRect(WIDTH / 2 - TRIANGLE_WIDTH / 2, 0, TRIANGLE_WIDTH, HEIGHT);
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = 'black';
+  ctx.strokeRect(WIDTH / 2 - TRIANGLE_WIDTH / 2, 0, TRIANGLE_WIDTH, HEIGHT);
   
   // Gutters - [ gutter ][ 6 triangles ][ bar ][ 6 triangles ][ gutter ]
 
   // LEFT gutter (PLAYER2 bear-off)
-  ctx.fillStyle = '#444';
+  ctx.fillStyle = selectedStyle.gutter;
   ctx.fillRect(0, 0, TRIANGLE_WIDTH, HEIGHT);
+  ctx.strokeStyle = 'black';
+  ctx.strokeRect(0, 0, TRIANGLE_WIDTH, HEIGHT);
 
   // RIGHT gutter (PLAYER1 bear-off)
-  ctx.fillStyle = '#444';
+  ctx.fillStyle = selectedStyle.gutter;
   ctx.fillRect(WIDTH - TRIANGLE_WIDTH, 0, TRIANGLE_WIDTH, HEIGHT);
+  ctx.strokeStyle = 'black';
+  ctx.strokeRect(WIDTH - TRIANGLE_WIDTH, 0, TRIANGLE_WIDTH, HEIGHT);
 
   // Triangles
   for (let i = 0; i < 12; i++) {
@@ -140,13 +155,17 @@ function drawBoard() {
   // Highlight selection
   if (selected) {
     if (selected.fromBar) {
-      console.log("highlightBar ${currentPlayer}", currentPlayer);
+      if (tracedebug) console.log("highlightBar ${currentPlayer}", currentPlayer);
       highlightBar(currentPlayer);
     } else if (selected.pointIndex != null) {
-      console.log("highlightPoint ${selected.pointIndex}", selected.pointIndex);
+      if (tracedebug) console.log("highlightPoint ${selected.pointIndex}", selected.pointIndex);
       highlightPoint(selected.pointIndex);
     }
   }
+  
+  ctx.lineWidth = 6;
+  ctx.strokeStyle = 'black';
+  ctx.strokeRect(0, 0, WIDTH, HEIGHT);
 }
 
 function drawTriangle(i, top) {
@@ -180,10 +199,9 @@ function drawTriangle(i, top) {
 
 function pointToCoords(index, stackIndex, player) {
   const topHalf = index >= 12;
-  const localIndex = topHalf ? index - 12 : index;
+  const localIndex = topHalf ? index - 12 : 11 - index;
   const isLeft = localIndex < 6;
   const col = isLeft ? localIndex : localIndex + 2;
-  //const x = col * TRIANGLE_WIDTH + TRIANGLE_WIDTH / 2;
   const x = BOARD_GUTTER + col * TRIANGLE_WIDTH + TRIANGLE_WIDTH / 2;
 
   const maxStack = 5;
@@ -203,10 +221,9 @@ function pointToCoords(index, stackIndex, player) {
 
 function highlightPoint(index) {
   const topHalf = index >= 12;
-  const localIndex = topHalf ? index - 12 : index;
+  const localIndex = topHalf ? index - 12 : 11 - index;
   const isLeft = localIndex < 6;
   const col = isLeft ? localIndex : localIndex + 2;
-  //const x = BOARD_GUTTER * col * TRIANGLE_WIDTH;
   const x = BOARD_GUTTER + col * TRIANGLE_WIDTH;
   const y = topHalf ? 0 : HEIGHT - TRIANGLE_HEIGHT;
 
@@ -247,7 +264,7 @@ function pointFromClick(x, y) {
   // Points
   if (x < BOARD_GUTTER || x > WIDTH-BOARD_GUTTER) {
   //if (x < 0 || x > WIDTH) {
-    console.log("Point Click return: ${x}", x);
+    if (tracedebug) console.log("Point Click return: ${x}", x);
     return null;
   }
   
@@ -255,19 +272,19 @@ function pointFromClick(x, y) {
   const col = Math.floor((x-BOARD_GUTTER) / TRIANGLE_WIDTH);
   
   if (col === 6 || col === 7) {
-    console.log("Point Click return: ${col}", col);
+    if (tracedebug) console.log("Point Click return: ${col}", col);
     return null;
   }
 
   const localCol = col > 7 ? col - 2 : col;
   const top = y < HEIGHT / 2;
   const localIndex = localCol;
-  const index = top ? localIndex + 12 : localIndex;
-  //const index = top
-  //  ? localIndex + 12          // top: 12 → 23 left→right
-  //  : 11 - localIndex;         // bottom: 11 → 0 left→right
+  //const index = top ? localIndex + 12 : localIndex;
+  const index = top
+    ? localIndex + 12          // top: 12 → 23 left→right
+    : 11 - localIndex;         // bottom: 11 → 0 left→right
   
-  console.log("Point Click: ${col}", col, "${localIndex}", localIndex, "${index}", index);
+  if (tracedebug) console.log("Point Click: ${col}", col, "${localIndex}", localIndex, "${index}", index);
 
   return { pointIndex: index };
 }
@@ -277,13 +294,13 @@ function handleClick(e) {
   const x = (e.clientX - rect.left) * (canvas.width / rect.width);
   const y = (e.clientY - rect.top) * (canvas.height / rect.height);
 
-  ////console.log("Dice Moves: ${diceMoves.length}", diceMoves.length);
+  ////if (tracedebug) console.log("Dice Moves: ${diceMoves.length}", diceMoves.length);
   //if (diceMoves.length === 0) return;
 
   const hit = pointFromClick(x, y);
-  console.log("Hit ${hit}", hit, "${diceMoves.length}", diceMoves.length);
+  if (tracedebug) console.log("Hit ${hit}", hit, "${diceMoves.length}", diceMoves.length);
   
-  //console.log("Dice Moves: ${diceMoves.length}", diceMoves.length);
+  //if (tracedebug) console.log("Dice Moves: ${diceMoves.length}", diceMoves.length);
   if (diceMoves.length === 0) return;
   
   if (!hit) return;
@@ -324,7 +341,7 @@ function handleClick(e) {
 function drawPointCheckers(index) {
   const { count, player } = board[index];
   if (count === 0) return;
-  //console.log("drawPointCheckers", index, count);
+  //if (tracedebug) console.log("drawPointCheckers", index, count);
   for (let i = 0; i < count; i++) {
     const { x, y } = pointToCoords(index, i, player);
     drawChecker(x, y, player);
@@ -342,7 +359,7 @@ function drawChecker(x, y, player) {
 }
 
 function drawDebugChecker(x, y, player) {
-  ///console.warn("drawDebugChecker", x, y, player);
+  //if (tracewarn) console.warn("drawDebugChecker", x, y, player);
   ctx.beginPath();
   ctx.arc(x, y, CHECKER_RADIUS, 0, Math.PI * 2);
   ctx.fillStyle = player === PLAYER1 ? '#f5f0e6' : '#2b2118';
@@ -475,7 +492,7 @@ function entryPoint(player, die) {
 
 function canMoveFromPoint(player, index, die) {
   const dest = destinationPoint(player, index, die);
-  console.log("Destination point", dest);
+  if (tracedebug) console.log("Destination point", dest);
   if (dest === null) return false;
 
   if (dest >= 0 && dest < POINTS) {
@@ -588,11 +605,11 @@ function attemptMoveFromBar(destIndex) {
   if (dirDie == null) return;
 
   if (!diceMoves.includes(dirDie)) {
-    console.warn("Dice moves doesn't include", dirDie);
+    if (tracewarn) console.warn("Dice moves doesn't include", dirDie);
     return;
   }
   if (!canEnterFromBar(player, dirDie)) {
-    console.warn("Can't enter from bar!", player, dirDie);
+    if (tracewarn) console.warn("Can't enter from bar!", player, dirDie);
     return;
   }
 
@@ -704,7 +721,8 @@ function attemptBearOff(fromIndex) {
 }
 
 function endTurnIfNeeded() {
-  console.log("End Turn:", borneOff[currentPlayer]);
+  if (tracedebug) console.log("End Turn:", borneOff[currentPlayer]);
+  
   if (borneOff[currentPlayer] === CHECKERS_PER_PLAYER) {
     statusEl.textContent = currentPlayer === PLAYER1 ? 'Player 1 WINS!' : 'Player 2 WINS!';
     gameOver = true;
@@ -723,6 +741,13 @@ function endTurnIfNeeded() {
   
   drawBoard();
   updateStatus();
+  
+  if (ai_on) {
+    // ⭐ NEW: if it's AI's turn, let it play
+    if (currentPlayer === PLAYER2 && !gameOver) {
+      aiPlayTurn();
+    }
+  }
 }
 
 function updateStatus() {
@@ -739,9 +764,18 @@ function updateStatus() {
     `Pips: P1=${pip1}, P2=${pip2}`;
 }
 
+/*
 rollBtn.addEventListener('click', () => {
   rollDice();
   drawBoard();
+});
+*/
+
+rollBtn.addEventListener('click', () => {
+  //if (ai_on && currentPlayer !== PLAYER1) return; // human only
+  rollDice();
+  drawBoard();
+  //if (ai_on) updateStatus();
 });
 
 restartBtn.addEventListener('click', () => {
@@ -750,7 +784,7 @@ restartBtn.addEventListener('click', () => {
   updateStatus();
 });
 
-boardStyleSel.addEventListener('click', () => {
+boardStyleSel.addEventListener('change', () => {
   selectedStyle = boardStyle[boardStyleSel.value];
   drawBoard();
 });
