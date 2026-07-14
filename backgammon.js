@@ -764,13 +764,6 @@ function updateStatus() {
     `Pips: P1=${pip1}, P2=${pip2}`;
 }
 
-/*
-rollBtn.addEventListener('click', () => {
-  rollDice();
-  drawBoard();
-});
-*/
-
 rollBtn.addEventListener('click', () => {
   //if (ai_on && currentPlayer !== PLAYER1) return; // human only
   rollDice();
